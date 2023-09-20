@@ -1,0 +1,31 @@
+# Python-specific files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+
+# IDE-specific files (e.g., for Visual Studio Code or PyCharm)
+.vscode/
+.idea/
+
+# Compiled Python files
+*.pyc
+
+# Logs
+*.log
+
+# Ignore the uploads directory where uploaded files are stored
+uploads/
+
+# Ignore the __pycache__ directory created by Python
+__pycache__/
+
+# Ignore system-specific files
+.DS_Store
+Thumbs.db
+
+# Environment variables file (if used)
+.env
