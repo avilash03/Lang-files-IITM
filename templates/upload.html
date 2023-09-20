@@ -1,13 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>File Upload</title>
+    <title>File Upload and Translation</title>
     <!-- Bootstrap CSS -->
-    <link 
-    rel="stylesheet" 
-    href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
-    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" 
-    crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <style>
         body {
             padding: 20px;
@@ -28,28 +24,28 @@
         <h1 class="text-center">Upload a File</h1>
         <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
-                <input type="file" class="form-control" name="file" id="file">
+                <input type="file" class="form-control" name="file" id="file" accept=".txt, .pdf, .png, .jpg, .jpeg">
             </div>
-            <button type="submit" class="btn btn-primary submit-btn">Upload</button>
+            <button type="submit" class="btn btn-primary submit-btn">Upload and Translate</button>
         </form>
-        {% if file_type and detected_language %}
+        {% if file_type %}
         <div class="result">
             <h2>File Type: {{ file_type }}</h2>
             <h2>Detected Language: {{ detected_language }}</h2>
+            {% if translated_text %}
+            <h2>Translated Text (Tamil):</h2>
+            <p>{{ translated_text }}</p>
+            <a href="{{ docx_file }}" download>Download Translated DOCX</a> <!-- Add this line -->
+            {% endif %}
         </div>
-        {% elif error %}
+        {% endif %}
+        {% if error %}
         <div class="alert alert-warning">{{ error }}</div>
         {% endif %}
     </div>
 
     <!-- Bootstrap and JQuery scripts -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" 
-    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" 
-    crossorigin="anonymous"></script>
-
-    <script 
-    src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" 
-    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" 
-    crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 </body>
 </html>
