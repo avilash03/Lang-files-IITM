@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)  # Generate a random secret key
 app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session data
 Session(app)
-
+global detected_language
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg'}
 
@@ -33,9 +33,10 @@ def detect_language(text):
     try:
         lang_code = detect(text)
         return language_names.get(lang_code, 'Unknown')  # Return full name or 'Unknown'
-    except lang_detect_exception.LangDetectException:
+    except (lang_detect_exception.LangDetectException, Exception):
         return 'Unknown'
-
+    
+    
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
@@ -105,7 +106,7 @@ def upload_file():
             # Prepare the information to be displayed on the page
             info_dict = {
                 'file_type': file_type,
-                'detected_language': language_names.get(detected_language, 'Unknown'),
+                'detected_language': detected_language,
                 'translated_text': translated_text,
             }
 
