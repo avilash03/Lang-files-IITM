@@ -55,47 +55,84 @@ def upload_file():
             file_type = "PDF" if filename.endswith('.pdf') else "Image" if filename.endswith(('.png', '.jpg', '.jpeg')) else "Text"
             detected_language = None
             translated_text = None
+            translator = Translator()
+
+            # Get the selected language from the form
+            selected_language = request.form.get('language')
+
+            def attempt_translation(text, source_lang, dest_lang):
+                if text and text.strip():
+                    for attempt in range(3):
+                        try:
+                            translation = translator.translate(text, src=source_lang, dest=dest_lang)
+                            if translation:
+                                return translation.text
+                        except TypeError:
+                            if attempt == 2:
+                                return "Translation failed"
+                            continue
+                else:
+                    return "Translation failed"
 
             if file_type == "PDF":
                 pdf_text = extract_text_from_pdf(filename)
                 detected_language = detect_language(pdf_text)
-                if detected_language != 'ta':
-                    translator = Translator()
-                    translation = translator.translate(pdf_text, src=detected_language, dest='ta')
-                    if translation:
-                        translated_text = translation.text
-                    else:
-                        translated_text = "Translation failed"
-                else:
-                    translated_text = pdf_text
+                translated_text = attempt_translation(pdf_text, detected_language, selected_language)
             elif file_type == "Image":
                 img = Image.open(filename)
-                text_en_hi = pytesseract.image_to_string(img, lang='eng+hin')
-                text_ta = pytesseract.image_to_string(img, lang='tam')
+                text_en_hi = pytesseract.image_to_string(img, lang='eng+hin+tam')
+                text_ta = pytesseract.image_to_string(img, lang='eng+hin+tam')
                 extracted_text = text_en_hi + " " + text_ta
                 detected_language = detect_language(extracted_text)
-                if detected_language != 'ta':
-                    translator = Translator()
-                    translation = translator.translate(extracted_text, src=detected_language, dest='ta')
-                    if translation:
-                        translated_text = translation.text
-                    else:
-                        translated_text = "Translation failed"
-                else:
-                    translated_text = extracted_text
+                translated_text = attempt_translation(extracted_text, detected_language, selected_language)
             else:
                 with open(filename, 'r', encoding='utf-8') as text_file:
                     file_content = text_file.read()
-                detected_language = detect_language(file_content)
-                if detected_language != 'ta':
-                    translator = Translator()
-                    translation = translator.translate(file_content, src=detected_language, dest='ta')
-                    if translation:
-                        translated_text = translation.text
-                    else:
-                        translated_text = "Translation failed"
-                else:
-                    translated_text = file_content
+                    detected_language = detect_language(file_content)
+                    translated_text = attempt_translation(file_content, detected_language, selected_language)
+
+            if file_type == "PDF" and not translated_text:
+                pdf_document = fitz.open(filename)
+                translated_text_pages = []
+                for page in pdf_document:
+                    image_list = page.get_images(full=True)
+                    if not image_list:
+                        continue
+                    extracted_text = ""
+                    for img in image_list:
+                        xref = img[0]
+                        base_image = pdf_document.extract_image(xref)
+                        image_data = base_image["image"]
+
+                        # Save the image data to a file
+                        with open("temp_image.png", "wb") as img_file:
+                            img_file.write(image_data)
+                        
+                        # Open the saved image file and apply OCR
+                        img = Image.open("temp_image.png")
+                        page_text = pytesseract.image_to_string(img, lang='eng+hin+tam')
+                        extracted_text += page_text + " "
+                    
+                    if extracted_text.strip():
+                        detected_language = detect_language(extracted_text)
+                        translated_text_page = attempt_translation(extracted_text, detected_language, selected_language)
+                        if detected_language != selected_language:
+                            translator = Translator()
+                            if extracted_text and extracted_text.strip():
+                                translation = translator.translate(extracted_text, src=detected_language, dest=selected_language)
+                                if translation:
+                                    translated_text_page = translation.text
+                                else:
+                                    translated_text_page = "Translation failed"
+                            else:
+                                translated_text_page = "Translation failed"
+                        else:
+                            translated_text_page = extracted_text
+
+                        translated_text_pages.append(translated_text_page)
+                
+                # Combine the translated text pages into a single string
+                translated_text = " ".join(translated_text_pages)
 
             # Create and save the translated DOCX file
             doc = Document()

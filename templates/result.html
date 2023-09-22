@@ -22,7 +22,7 @@
         <div class="result">
             <h2>File Type: {{ info['file_type'] }}</h2>
             <h2>Detected Language: {{ info['detected_language'] }}</h2>
-            <h2>Translated Text (Tamil):</h2>
+            <h2>Translated Text:</h2>
             <p>{{ info['translated_text'] }}</p>
             <a href="{{ url_for('download_docx', filename=docx_filename) }}" class="btn btn-primary download-btn">Download Translated DOCX</a>
         </div>

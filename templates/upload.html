@@ -26,6 +26,18 @@
             <div class="form-group">
                 <input type="file" class="form-control" name="file" id="file" accept=".txt, .pdf, .png, .jpg, .jpeg">
             </div>
+
+            <!-- Add the select dropdown for language options -->
+            <div class="form-group">
+                <label for="language">Translate to:</label>
+                <select name="language" id="language" class="form-control">
+                    <option value="">Select Language</option>
+                    <option value="en">English</option>
+                    <option value="hi">Hindi</option>
+                    <option value="ta">Tamil</option>
+                </select>
+            </div>
+
             <button type="submit" class="btn btn-primary submit-btn">Upload and Translate</button>
         </form>
         {% if file_type %}
@@ -33,7 +45,7 @@
             <h2>File Type: {{ file_type }}</h2>
             <h2>Detected Language: {{ detected_language }}</h2>
             {% if translated_text %}
-            <h2>Translated Text (Tamil):</h2>
+            <h2>Translated Text:</h2>
             <p>{{ translated_text }}</p>
             <a href="{{ docx_file }}" download>Download Translated DOCX</a> <!-- Add this line -->
             {% endif %}
