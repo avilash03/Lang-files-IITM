@@ -25,6 +25,14 @@
             <h2>Translated Text:</h2>
             <p>{{ info['translated_text'] }}</p>
             <a href="{{ url_for('download_docx', filename=docx_filename) }}" class="btn btn-primary download-btn">Download Translated DOCX</a>
+            
+
+        {% if cosine_similarity is not none %}
+<div class="container">
+  <p>Cosine Semantic Similarity: {{ cosine_similarity }} %</p>
+</div>
+{% endif %}
+
         </div>
     </div>
 

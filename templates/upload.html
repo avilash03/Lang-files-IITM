@@ -24,7 +24,12 @@
         <h1 class="text-center">Upload a File</h1>
         <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
+                <label for="file">Select a file to translate:</label>
                 <input type="file" class="form-control" name="file" id="file" accept=".txt, .pdf, .png, .jpg, .jpeg">
+            </div>
+            <div class="form-group">
+                <label for="reference_file">Select a reference file:</label>
+                <input type="file" class="form-control" name="reference_file" id="reference_file" accept=".txt, .pdf, .png, .jpg, .jpeg">
             </div>
 
             <!-- Add the select dropdown for language options -->
@@ -37,7 +42,6 @@
                     <option value="ta">Tamil</option>
                 </select>
             </div>
-
             <button type="submit" class="btn btn-primary submit-btn">Upload and Translate</button>
         </form>
         {% if file_type %}

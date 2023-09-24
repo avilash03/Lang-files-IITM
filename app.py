@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, session, url_for
+from flask import Flask, request, render_template, send_file
 from flask_session import Session
 import os
 import fitz  # PyMuPDF
@@ -8,6 +8,9 @@ from langdetect import detect, lang_detect_exception
 from googletrans import Translator
 from docx import Document
 import secrets  # Import the secrets module to generate a secret key
+from fuzzywuzzy import fuzz
+import langdetect.lang_detect_exception
+from sentence_transformers import SentenceTransformer, util
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)  # Generate a random secret key
@@ -15,7 +18,7 @@ app.config['SESSION_TYPE'] = 'filesystem'  # Use the filesystem to store session
 Session(app)
 global detected_language
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -26,6 +29,9 @@ language_names = {
     'ta': 'Tamil',  # Add more languages and their full names as needed
 }
 
+# Initialize the Sentence Transformer model
+model = SentenceTransformer('bert-base-nli-mean-tokens')
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -35,8 +41,7 @@ def detect_language(text):
         return language_names.get(lang_code, 'Unknown')  # Return full name or 'Unknown'
     except (lang_detect_exception.LangDetectException, Exception):
         return 'Unknown'
-    
-    
+
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
@@ -107,12 +112,12 @@ def upload_file():
                         # Save the image data to a file
                         with open("temp_image.png", "wb") as img_file:
                             img_file.write(image_data)
-                        
+
                         # Open the saved image file and apply OCR
                         img = Image.open("temp_image.png")
                         page_text = pytesseract.image_to_string(img, lang='eng+hin+tam')
                         extracted_text += page_text + " "
-                    
+
                     if extracted_text.strip():
                         detected_language = detect_language(extracted_text)
                         translated_text_page = attempt_translation(extracted_text, detected_language, selected_language)
@@ -129,8 +134,8 @@ def upload_file():
                         else:
                             translated_text_page = extracted_text
 
-                        translated_text_pages.append(translated_text_page)
-                
+                        translated_text_pages.extend(translated_text_page)
+
                 # Combine the translated text pages into a single string
                 translated_text = " ".join(translated_text_pages)
 
@@ -140,6 +145,46 @@ def upload_file():
             docx_filename = 'translated_text.docx'
             doc.save(docx_filename)
 
+            # Load the reference file
+            ref_file = request.files['reference_file']
+            if ref_file and allowed_file(ref_file.filename):
+                ref_filename = os.path.join(app.config['UPLOAD_FOLDER'], ref_file.filename)
+                ref_file.save(ref_filename)
+
+                with open(ref_filename, 'r', encoding='utf-8', errors='ignore') as f:
+                    reference_content = f.read()
+
+                # Detect the language of the reference content
+                try:
+                    ref_language = detect(reference_content)
+                except langdetect.lang_detect_exception.LangDetectException:
+                    ref_language = 'Unknown'
+
+                # Calculate similarity percentage
+                if ref_language == 'hi':
+                    # If the reference content is in Hindi, use the Hindi language model
+                    similarity_percentage = fuzz.token_set_ratio(translated_text, reference_content, tokenizer=lambda x: x.split())
+                elif ref_language == 'ta':
+                    # If the reference content is in Tamil, use the Tamil language model
+                    similarity_percentage = fuzz.token_set_ratio(translated_text, reference_content, tokenizer=lambda x: x.split())
+                else:
+                    # For other languages, use the default tokenizer
+                    similarity_percentage = fuzz.token_set_ratio(translated_text, reference_content)
+
+                # Obtain embeddings for translated_text and reference_content
+                translated_text_emb = model.encode(translated_text, convert_to_tensor=True)
+                reference_content_emb = model.encode(reference_content, convert_to_tensor=True)
+
+                # Compute cosine similarity between the two
+                cosine_similarity = util.pytorch_cos_sim(translated_text_emb, reference_content_emb)
+
+                # Convert from tensor to numpy array and get value
+                cosine_similarity = cosine_similarity.numpy()[0][0]
+
+            else:
+                similarity_percentage = "Reference file not provided"
+                cosine_similarity = None
+
             # Prepare the information to be displayed on the page
             info_dict = {
                 'file_type': file_type,
@@ -148,7 +193,8 @@ def upload_file():
             }
 
             # Serve the DOCX file for download and pass the info_dict to the template
-            return render_template('result.html', info=info_dict, docx_filename=docx_filename)
+            return render_template('result.html', info=info_dict, docx_filename=docx_filename,
+                                   cosine_similarity=cosine_similarity*100)
 
         else:
             return render_template('upload.html', error='File type not allowed')
